@@ -1,0 +1,85 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+
+public class MoveScopeSlider : MonoBehaviour
+{
+    public GameObject objectToMove;
+    public Slider slider;
+    [HideInInspector] public bool x, y, z; // Agregamos las variables para controlar los ejes
+    private Vector3 initialPosition;
+
+    private void Awake()
+    {
+        initialPosition = objectToMove.transform.localPosition;
+        LoadData();
+
+    }
+   
+  
+     private void Update()
+    {
+        float sliderValue = slider.value;
+        float maxDistance = slider.maxValue;
+        float xOffset = maxDistance * (sliderValue - 0.5f);
+        // Calcular la diferencia solo en los ejes seleccionados
+        Vector3 offset = new Vector3(x ? xOffset : 0f, y ? xOffset : 0f, z ? xOffset : 0f);
+
+        // Convertir la posición local a posición global usando la matriz del padre
+        Vector3 newPosition = objectToMove.transform.parent.TransformPoint(initialPosition + offset);
+
+        objectToMove.transform.position = newPosition;
+        SaveData();
+
+    }
+
+     public void SaveData()
+    {
+        PlayerPrefs.SetFloat("SavedSliderValue", slider.value);
+    }
+
+    public void LoadData()
+    {
+        if (PlayerPrefs.HasKey("SavedSliderValue"))
+        {
+            float savedValue = PlayerPrefs.GetFloat("SavedSliderValue");
+            slider.value = savedValue;
+        }
+    }
+
+}
+
+#if UNITY_EDITOR
+[CustomEditor(typeof(MoveScopeSlider))]
+public class MoveScopeToEditor : Editor
+{
+    public override void OnInspectorGUI()
+    {
+        EditorGUI.BeginChangeCheck();
+        base.OnInspectorGUI();
+
+        MoveScopeSlider platform = (MoveScopeSlider)target;
+
+        EditorGUILayout.Space();
+
+        EditorGUILayout.BeginHorizontal();
+
+        platform.x = GUILayout.Toggle(platform.x, "Move X",  "Button", GUILayout.MaxHeight(24));
+        platform.y = GUILayout.Toggle(platform.y, "Move Y",  "Button", GUILayout.MaxHeight(24));
+        platform.z = GUILayout.Toggle(platform.z, "Move Z",  "Button", GUILayout.MaxHeight(24));
+
+        EditorGUILayout.EndHorizontal();
+
+        if (EditorGUI.EndChangeCheck())
+        {
+            Undo.RecordObject((MoveScopeSlider)target, "Changed Moving Platform");
+        }
+    }
+}
+#endif
